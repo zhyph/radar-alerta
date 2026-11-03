@@ -87,4 +87,21 @@ public class GeoTest {
         assertEquals(1000, Geo.distanceM(-23.5, -46.6, east[0], east[1]), 15);
         assertTrue(east[1] > -46.6);
     }
+
+    @Test
+    public void facingParsesOnlyPlainCardinalValues() {
+        assertEquals(45, Geo.parseFacing("NE"));
+        assertEquals(90, Geo.parseFacing(" 90 "));
+        assertEquals(-1, Geo.parseFacing("both"));
+        assertEquals(-1, Geo.parseFacing("forward"));
+        assertEquals(-1, Geo.parseFacing("90-180"));
+        assertEquals(-1, Geo.parseFacing(null));
+    }
+
+    @Test
+    public void cameraWatchesTrafficComingTowardIt() {
+        assertTrue(Geo.watchesTravel(270, 90));    // faces east, sees westbound traffic
+        assertFalse(Geo.watchesTravel(90, 90));    // eastbound traffic drives away from it
+        assertTrue(Geo.watchesTravel(90, -1));     // unknown direction never excludes
+    }
 }

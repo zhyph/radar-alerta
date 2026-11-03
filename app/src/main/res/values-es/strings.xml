@@ -79,4 +79,19 @@
     <string name="report_fail">No se pudo enviar el reporte</string>
     <string name="opt_auto_title">Iniciar alertas al abrir la app</string>
     <string name="opt_auto_sub">Combínalo con una rutina del teléfono que abre Radar Alert al conectar el Bluetooth del coche.</string>
+    <string name="alert_speed">Cámara de velocidad adelante</string>
+    <string name="alert_red">Cámara de semáforo adelante</string>
+    <string name="alert_avg">Tramo de velocidad media adelante</string>
+    <string name="opt_dir_title">Ignorar cámaras orientadas al otro lado</string>
+    <string name="opt_dir_sub">Usa la etiqueta de dirección cuando OpenStreetMap la tiene. Experimental: si la etiqueta es errónea, podrías perder una cámara.</string>
+    <string name="sec_history">Alertas recientes</string>
+    <string name="history_empty">Aún no hay alertas.</string>
+    <string name="history_detail">%1$d m adelante, tú a %2$d km/h, límite %3$s</string>
+    <string name="history_clear">Borrar historial</string>
+    <string name="limit_unknown">desconocido</string>
+    <string name="type_speed_short">Velocidad</string>
+    <string name="type_red_short">Semáforo</string>
+    <string name="type_avg_short">Media</string>
+    <string name="widget_desc">Velocidad y límite de la próxima cámara</string>
+    <string name="widget_limit">límite %1$d</string>
 </resources>

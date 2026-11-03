@@ -67,8 +67,14 @@ final class CameraStore {
         final int maxSpeed; // 0 = unknown
         final boolean mph;
         final Kind kind;
+        final int facing;   // compass direction it faces, -1 = unknown
 
         Camera(long id, double lat, double lon, int maxSpeed, boolean mph, Kind kind) {
+            this(id, lat, lon, maxSpeed, mph, kind, -1);
+        }
+
+        Camera(long id, double lat, double lon, int maxSpeed, boolean mph, Kind kind, int facing) {
+            this.facing = facing;
             this.id = id;
             this.lat = lat;
             this.lon = lon;
@@ -425,7 +431,7 @@ final class CameraStore {
                     kind = Kind.SPEED;
                 }
                 all.add(new Camera(o.getLong("id"), o.getDouble("lat"), o.getDouble("lon"),
-                        o.getInt("max"), o.optBoolean("mph"), kind));
+                        o.getInt("max"), o.optBoolean("mph"), kind, o.optInt("dir", -1)));
             }
         }
         Map<String, List<Camera>> buckets = new HashMap<>();
@@ -560,7 +566,8 @@ final class CameraStore {
                 speed = 0;
             }
         }
-        list.add(new Camera(id, lat, lon, speed, mph, kind));
+        list.add(new Camera(id, lat, lon, speed, mph, kind,
+                tags == null ? -1 : Geo.parseFacing(tags.optString("direction", null))));
     }
 
     // ---- Disk cache -----------------------------------------------------------------------
@@ -573,8 +580,10 @@ final class CameraStore {
         try {
             JSONArray arr = new JSONArray();
             for (Camera c : t.cameras) {
-                arr.put(new JSONObject().put("id", c.id).put("lat", c.lat).put("lon", c.lon)
-                        .put("max", c.maxSpeed).put("mph", c.mph).put("kind", c.kind.name()));
+                JSONObject o = new JSONObject().put("id", c.id).put("lat", c.lat).put("lon", c.lon)
+                        .put("max", c.maxSpeed).put("mph", c.mph).put("kind", c.kind.name());
+                if (c.facing >= 0) o.put("dir", c.facing);
+                arr.put(o);
             }
             JSONObject root = new JSONObject().put("time", t.fetchedAt).put("osm", t.osmBase).put("cameras", arr);
             try (FileOutputStream out = new FileOutputStream(file(k))) {
@@ -601,7 +610,7 @@ final class CameraStore {
                     kind = Kind.SPEED;
                 }
                 list.add(new Camera(o.getLong("id"), o.getDouble("lat"), o.getDouble("lon"),
-                        o.getInt("max"), o.optBoolean("mph"), kind));
+                        o.getInt("max"), o.optBoolean("mph"), kind, o.optInt("dir", -1)));
             }
             return new Tile(root.getLong("time"), root.optString("osm", ""), list);
         } catch (Throwable e) {

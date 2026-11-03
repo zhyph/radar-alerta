@@ -38,4 +38,14 @@ public class ToneTest {
     public void unknownIdFallsBackToTheSiren() {
         assertEquals(Tone.pcm("siren").length, Tone.pcm("no-such-sound").length);
     }
+
+    @Test
+    public void cameraKindsSoundDifferent() {
+        for (String id : Tone.IDS) {
+            int one = Tone.pcm(id).length;
+            assertEquals(id, one, Tone.pcm(id, CameraStore.Kind.SPEED).length);
+            assertEquals(id, one * 2 + 300 * Tone.SAMPLE_RATE / 1000, Tone.pcm(id, CameraStore.Kind.RED_LIGHT).length);
+            assertEquals(id, one * 4 / 3, Tone.pcm(id, CameraStore.Kind.AVERAGE).length, 1);
+        }
+    }
 }

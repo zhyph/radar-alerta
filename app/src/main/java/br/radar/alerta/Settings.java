@@ -28,6 +28,11 @@ final class Settings {
 
     void setOnlyWhenOver(boolean value) { prefs.edit().putBoolean("only_over", value).apply(); }
 
+    /** Skip cameras whose OSM direction says they face away from your travel (off: data is mixed). */
+    boolean directionFilter() { return prefs.getBoolean("dir_filter", false); }
+
+    void setDirectionFilter(boolean value) { prefs.edit().putBoolean("dir_filter", value).apply(); }
+
     /** Id of the alert sound (see Tone.IDS). */
     String soundId() { return prefs.getString("sound", Tone.DEFAULT); }
 

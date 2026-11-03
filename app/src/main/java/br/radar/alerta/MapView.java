@@ -466,9 +466,27 @@ final class MapView extends View {
                 if (Math.hypot(x - w / 2f, y - h / 2f) > visibleRadius()) continue;
             } else if (x < -r || y < -r || x > w + r || y > h + r) continue;
             dot.setColor(colorOf(c.kind));
+            drawMarker(canvas, c.kind, x, y, r);
+        }
+    }
+
+    /** Speed = circle, red-light = diamond, average-speed = triangle: tells types apart without color. */
+    private void drawMarker(Canvas canvas, CameraStore.Kind kind, float x, float y, float r) {
+        if (kind == CameraStore.Kind.SPEED) {
             canvas.drawCircle(x, y, r, dot);
             canvas.drawCircle(x, y, r, outline);
+            return;
         }
+        float k = r * 1.35f;
+        arrow.reset();
+        if (kind == CameraStore.Kind.RED_LIGHT) {
+            arrow.moveTo(x, y - k); arrow.lineTo(x + k, y); arrow.lineTo(x, y + k); arrow.lineTo(x - k, y);
+        } else {
+            arrow.moveTo(x, y - k); arrow.lineTo(x + k, y + k * 0.8f); arrow.lineTo(x - k, y + k * 0.8f);
+        }
+        arrow.close();
+        canvas.drawPath(arrow, dot);
+        canvas.drawPath(arrow, outline);
     }
 
     static int colorOf(CameraStore.Kind kind) {

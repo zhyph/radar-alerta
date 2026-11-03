@@ -81,6 +81,7 @@ public final class SettingsActivity extends Activity {
         buildRulesSection();
         buildTypesSection();
         buildToolsSection();
+        buildHistorySection();
         buildBackgroundSection();
 
         TextView attribution = Ui.text(this, getString(R.string.attribution), 12, Ui.TEXT_2, false);
@@ -263,6 +264,49 @@ public final class SettingsActivity extends Activity {
             auto.setChecked(on);
             settings.setAutoStart(on);
         }, null);
+
+        Switch facing = new Switch(this);
+        facing.setClickable(false);
+        facing.setChecked(settings.directionFilter());
+        facing.setThumbTintList(new ColorStateList(new int[][] {{android.R.attr.state_checked}, {}},
+                new int[] {Ui.AMBER, Ui.TEXT_2}));
+        facing.setTrackTintList(new ColorStateList(new int[][] {{android.R.attr.state_checked}, {}},
+                new int[] {0x66FFB300, Ui.OUTLINE}));
+        row(getString(R.string.opt_dir_title), getString(R.string.opt_dir_sub), facing, v -> {
+            boolean on = !facing.isChecked();
+            facing.setChecked(on);
+            settings.setDirectionFilter(on);
+        }, null);
+    }
+
+    private void buildHistorySection() {
+        section(getString(R.string.sec_history));
+        java.util.List<History.Entry> entries = History.list(this);
+        if (entries.isEmpty()) {
+            content.addView(Ui.text(this, getString(R.string.history_empty), 14, Ui.TEXT_2, false));
+            return;
+        }
+        java.text.DateFormat fmt = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT,
+                java.text.DateFormat.SHORT);
+        for (History.Entry e : entries) {
+            String kind = getString(e.kind == CameraStore.Kind.RED_LIGHT ? R.string.type_red_short
+                    : e.kind == CameraStore.Kind.AVERAGE ? R.string.type_avg_short : R.string.type_speed_short);
+            String limit = e.limit > 0 ? e.limit + (e.mph ? " mph" : " km/h") : getString(R.string.limit_unknown);
+            TextView line = Ui.text(this, fmt.format(new java.util.Date(e.time)) + "  " + kind + " #" + e.cameraId
+                    + "\n" + getString(R.string.history_detail, e.distM, e.speedKmh, limit), 13, Ui.TEXT_2, false);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            lp.topMargin = Ui.dp(this, 10);
+            content.addView(line, lp);
+        }
+        Button clear = Ui.button(this, getString(R.string.history_clear), false);
+        clear.setOnClickListener(v -> {
+            History.clear(this);
+            recreate();
+        });
+        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(this, 56));
+        cp.topMargin = Ui.dp(this, 12);
+        content.addView(clear, cp);
     }
 
     private void buildTypesSection() {

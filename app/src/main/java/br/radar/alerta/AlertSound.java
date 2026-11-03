@@ -28,10 +28,11 @@ final class AlertSound {
     }
 
     /** (Re)builds the audio track when a different sound is requested. */
-    private void load(String id) {
-        if (id.equals(trackId) && track != null) return;
+    private void load(String id, CameraStore.Kind kind) {
+        String key = id + "/" + kind;
+        if (key.equals(trackId) && track != null) return;
         if (track != null) track.release();
-        short[] pcm = Tone.pcm(id);
+        short[] pcm = Tone.pcm(id, kind);
         durationMs = Tone.durationMs(pcm);
         track = new AudioTrack.Builder()
                 .setAudioAttributes(ATTRS)
@@ -44,11 +45,15 @@ final class AlertSound {
                 .setBufferSizeInBytes(pcm.length * 2)
                 .build();
         track.write(pcm, 0, pcm.length);
-        trackId = id;
+        trackId = key;
     }
 
     void play(String id) {
-        load(id);
+        play(id, CameraStore.Kind.SPEED);
+    }
+
+    void play(String id, CameraStore.Kind kind) {
+        load(id, kind);
         abandonFocus();
         focus = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
                 .setAudioAttributes(ATTRS).build();

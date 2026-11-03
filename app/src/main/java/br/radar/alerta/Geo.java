@@ -71,6 +71,37 @@ final class Geo {
         return speed > limit - toleranceUnits;
     }
 
+    private static final String[] COMPASS = {"N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+            "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"};
+
+    /**
+     * OSM direction=* as the compass direction the camera faces (0-359), or -1 when it is missing or
+     * not a plain cardinal value: both/forward/backward (relative to the way), sector ranges and
+     * anything unreadable all mean "no usable direction".
+     */
+    static int parseFacing(String value) {
+        if (value == null) return -1;
+        String v = value.trim().toUpperCase(java.util.Locale.ROOT);
+        for (int i = 0; i < COMPASS.length; i++) {
+            if (COMPASS[i].equals(v)) return (int) Math.round(i * 22.5) % 360;
+        }
+        try {
+            double d = Double.parseDouble(v);
+            return d >= 0 && d < 360 ? (int) Math.round(d) % 360 : -1;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    /**
+     * A camera facing `facing` watches traffic coming toward it (travelling the opposite way), per
+     * the OSM wiki note that things beside the road face against the direction of travel. No
+     * direction (-1) never excludes a camera.
+     */
+    static boolean watchesTravel(double travelBearing, int facing) {
+        return facing < 0 || angleDiff(travelBearing, (facing + 180) % 360) <= 70;
+    }
+
     /** Warn about leadSeconds ahead, clamped to a sensible range (meters). */
     static double alertDistanceM(double speedMs, int leadSeconds) {
         return Math.max(250, Math.min(700, speedMs * leadSeconds));

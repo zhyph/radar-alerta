@@ -55,6 +55,9 @@ final class RadarEngine implements LocationListener {
     private volatile float lastBearing = Float.NaN;
     private volatile float lastSpeed;
     private volatile double lastRangeM;
+    private volatile CameraStore.Camera nextCamera;
+    private volatile double nextDistM;
+    private static final double NEXT_RANGE_M = 1_500;
 
     private RadarEngine(Context context) {
         this.context = context;
@@ -72,6 +75,11 @@ final class RadarEngine implements LocationListener {
     float lastBearing() { return lastBearing; }
 
     float lastSpeed() { return lastSpeed; }
+
+    /** Nearest enabled camera ahead within 1.5 km (null if none), for the limit display. */
+    CameraStore.Camera nextCamera() { return nextCamera; }
+
+    double nextDistM() { return nextDistM; }
 
     /** Distance (m) at which a camera ahead triggers the siren at the current speed. */
     double alertRangeM() { return lastRangeM; }
@@ -94,6 +102,7 @@ final class RadarEngine implements LocationListener {
     }
 
     private void end() {
+        SpeedWidget.push(context, null, true);
         try {
             locationManager.removeUpdates(this);
         } catch (Throwable ignored) { }
@@ -134,40 +143,62 @@ final class RadarEngine implements LocationListener {
         lastFix = loc;
         lastBearing = bearing;
         lastSpeed = Float.isNaN(speed) ? 0f : speed;
+        SpeedWidget.push(context, this, false);
         store.ensureCoverage(loc.getLatitude(), loc.getLongitude(), bearing);
         if (Float.isNaN(bearing) || Float.isNaN(speed) || speed < MIN_SPEED_MS) return;
 
         double range = Geo.alertDistanceM(speed, settings.leadSeconds());
         lastRangeM = range;
         long now = System.currentTimeMillis();
+        CameraStore.Camera nearest = null;
+        double nearestDist = NEXT_RANGE_M;
+        boolean directionFilter = settings.directionFilter();
+        CameraStore.Camera toAnnounce = null;
+        double announceDist = 0;
         for (CameraStore.Camera c : store.cameras()) {
             if (!settings.kindEnabled(c.kind)) continue;
             double dist = Geo.distanceM(loc.getLatitude(), loc.getLongitude(), c.lat, c.lon);
-            if (dist > range) continue;
+            if (dist > NEXT_RANGE_M) continue;
             if (!Geo.isAhead(loc.getLatitude(), loc.getLongitude(), bearing, c.lat, c.lon,
                     MAX_BEARING_DIFF_DEG)) continue;
             // Skip cameras on parallel streets: they are ahead but too far to the side of our road.
             if (Geo.lateralOffsetM(loc.getLatitude(), loc.getLongitude(), bearing, c.lat, c.lon)
                     > Geo.lateralToleranceM(dist)) continue;
+            if (directionFilter && !Geo.watchesTravel(bearing, c.facing)) continue;
+            if (dist < nearestDist) {
+                nearest = c;
+                nearestDist = dist;
+            }
+            if (dist > range) continue;
             if (settings.onlyWhenOver() && c.maxSpeed > 0
                     && !Geo.nearOrOverLimit(speed, c.maxSpeed, c.mph, OVER_LIMIT_TOLERANCE)) continue;
             Long last = lastAlert.get(c.id);
             if (last != null && now - last < REALERT_MS) continue;
+            if (toAnnounce == null || dist < announceDist) {
+                toAnnounce = c;
+                announceDist = dist;
+            }
+        }
+        if (toAnnounce != null) {
+            // Silence its neighbours too, so a cluster of cameras gives one alert, not several.
             for (CameraStore.Camera other : store.cameras()) {
-                if (other == c || Geo.distanceM(c.lat, c.lon, other.lat, other.lon) <= CLUSTER_M) {
+                if (other == toAnnounce || Geo.distanceM(toAnnounce.lat, toAnnounce.lon, other.lat, other.lon) <= CLUSTER_M) {
                     lastAlert.put(other.id, now);
                 }
             }
-            announce(c, dist);
-            break; // one alert per fix
+            announce(toAnnounce, announceDist, speed);
         }
+        nextCamera = nearest;
+        nextDistM = nearestDist;
     }
 
-    private void announce(CameraStore.Camera c, double dist) {
+    private void announce(CameraStore.Camera c, double dist, float speedMs) {
         Log.i(TAG, "ALERT camera " + c.id + " in " + (int) dist + " m, limit " + c.maxSpeed
                 + (c.mph ? " mph" : " km/h"));
         lastAlertAt = System.currentTimeMillis();
         lastAlertCamera = c;
-        if (sound != null) sound.play(settings.soundId());
+        History.add(context, new History.Entry(lastAlertAt, c.id, c.kind, (int) dist,
+                (int) Math.round(speedMs * 3.6), c.maxSpeed, c.mph));
+        if (sound != null) sound.play(settings.soundId(), c.kind);
     }
 }

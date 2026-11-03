@@ -79,4 +79,19 @@
     <string name="report_fail">Could not send the report</string>
     <string name="opt_auto_title">Start alerts when the app opens</string>
     <string name="opt_auto_sub">Pair with a phone routine that opens Radar Alert when your car\'s Bluetooth connects.</string>
+    <string name="alert_speed">Speed camera ahead</string>
+    <string name="alert_red">Red-light camera ahead</string>
+    <string name="alert_avg">Average-speed section ahead</string>
+    <string name="opt_dir_title">Ignore cameras facing away</string>
+    <string name="opt_dir_sub">Uses the direction tag when OpenStreetMap has one. Experimental: if a tag is wrong you may miss a camera.</string>
+    <string name="sec_history">Recent alerts</string>
+    <string name="history_empty">No alerts yet.</string>
+    <string name="history_detail">%1$d m ahead, you at %2$d km/h, limit %3$s</string>
+    <string name="history_clear">Clear history</string>
+    <string name="limit_unknown">unknown</string>
+    <string name="type_speed_short">Speed</string>
+    <string name="type_red_short">Red light</string>
+    <string name="type_avg_short">Average</string>
+    <string name="widget_desc">Speed and the limit of the next camera</string>
+    <string name="widget_limit">limit %1$d</string>
 </resources>

@@ -44,6 +44,27 @@ final class Tone {
         return b.build();
     }
 
+    /**
+     * The alert for one camera kind, so they can be told apart by ear: speed cameras play the chosen
+     * sound once, red-light cameras play it twice, average-speed sections play it lower and slower.
+     */
+    static short[] pcm(String id, CameraStore.Kind kind) {
+        short[] base = pcm(id);
+        if (kind == CameraStore.Kind.RED_LIGHT) {
+            int gap = 300 * SAMPLE_RATE / 1000;
+            short[] twice = new short[base.length * 2 + gap];
+            System.arraycopy(base, 0, twice, 0, base.length);
+            System.arraycopy(base, 0, twice, base.length + gap, base.length);
+            return twice;
+        }
+        if (kind == CameraStore.Kind.AVERAGE) {
+            short[] slow = new short[base.length * 4 / 3];   // resampled at 0.75x: lower pitch, longer
+            for (int i = 0; i < slow.length; i++) slow[i] = base[(int) Math.min(base.length - 1, i * 3L / 4)];
+            return slow;
+        }
+        return base;
+    }
+
     static int durationMs(short[] pcm) {
         return (int) (pcm.length * 1000L / SAMPLE_RATE);
     }

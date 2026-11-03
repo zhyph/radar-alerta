@@ -54,6 +54,7 @@ public final class MainActivity extends Activity {
         getWindow().setStatusBarColor(0x00000000);
         getWindow().setNavigationBarColor(Ui.SURFACE);
         viewStore = new CameraStore(this);
+        startRequested = getIntent().getBooleanExtra(EXTRA_START, false);
 
         map = new MapView(this);
         map.setCameraProvider(() -> store().cameras());
@@ -101,6 +102,13 @@ public final class MainActivity extends Activity {
                 Gravity.TOP | Gravity.END);
         rp.setMargins(0, Ui.dp(this, 68), Ui.dp(this, 16), 0);
         mapArea.addView(recenter, rp);
+
+        speedPanel = new SpeedPanel(this);
+        speedPanel.setVisibility(View.GONE);
+        FrameLayout.LayoutParams spp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.START);
+        spp.setMargins(Ui.dp(this, 16), 0, 0, Ui.dp(this, 40));
+        mapArea.addView(speedPanel, spp);
 
         // Bottom panel: status and the one primary action.
         panel = new LinearLayout(this);
@@ -190,17 +198,24 @@ public final class MainActivity extends Activity {
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        startRequested = intent.getBooleanExtra(EXTRA_START, false);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         handler.post(refresh);
         // Opening the app (e.g. from a car-Bluetooth routine) can start alerts, once per launch.
-        if (!autoTried) {
+        if (!autoTried || startRequested) {
             autoTried = true;
             Settings st = new Settings(this);
-            if (st.autoStart() && st.legalAccepted() && RadarEngine.running() == null
+            if ((st.autoStart() || startRequested) && st.legalAccepted() && RadarEngine.running() == null
                     && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                 startAlerts();
             }
+            startRequested = false;
         }
     }
 
@@ -210,6 +225,9 @@ public final class MainActivity extends Activity {
         super.onPause();
     }
 
+    static final String EXTRA_START = "start";
+    private boolean startRequested;
+    private SpeedPanel speedPanel;
     private boolean autoTried;
 
     private void onToggle() {
@@ -278,11 +296,18 @@ public final class MainActivity extends Activity {
         recenter.setVisibility(on && !map.isFollowing() && map.hasUser() ? View.VISIBLE : View.GONE);
         map.refresh();
 
+        updateSpeedPanel(engine);
         headline.setText(on ? R.string.title_on : R.string.title_off);
         List<CameraStore.Camera> cams = store().cameras();
         String age = Ui.agoIso(this, store().osmBase());
         subline.setTextColor(Ui.TEXT_2);
-        if (!on) {
+        CameraStore.Camera alerted = on ? engine.lastAlertCamera() : null;
+        if (alerted != null && System.currentTimeMillis() - engine.lastAlertAt() < 8_000) {
+            // Name what just sounded, since the alert tone alone does not say which kind it was.
+            subline.setText(alerted.kind == CameraStore.Kind.RED_LIGHT ? R.string.alert_red
+                    : alerted.kind == CameraStore.Kind.AVERAGE ? R.string.alert_avg : R.string.alert_speed);
+            subline.setTextColor(MapView.colorOf(alerted.kind));
+        } else if (!on) {
             subline.setText(R.string.sub_off);
         } else if (store().currentAreaMissing()) {
             // Never leave the user thinking they are protected when there is no data here.
@@ -296,6 +321,22 @@ public final class MainActivity extends Activity {
         }
         toggle.setText(on ? R.string.stop : R.string.start);
         styleToggle(on);
+    }
+
+    /** Speed and next-camera limit, only while alerts run and the phone is actually moving. */
+    private void updateSpeedPanel(RadarEngine engine) {
+        if (engine == null || engine.lastFix() == null) {
+            speedPanel.setVisibility(View.GONE);
+            return;
+        }
+        CameraStore.Camera next = engine.nextCamera();
+        int limit = next == null || next.maxSpeed <= 0 ? 0
+                : (int) Math.round(next.maxSpeed * (next.mph ? 1.609344 : 1.0));
+        boolean wasCamera = next != null;
+        speedPanel.set((int) Math.round(engine.lastSpeed() * 3.6), wasCamera,
+                wasCamera ? next.kind : CameraStore.Kind.SPEED, limit, (int) engine.nextDistM());
+        speedPanel.setVisibility(View.VISIBLE);
+        speedPanel.requestLayout();
     }
 
     private boolean toggleIsPrimary = true;
