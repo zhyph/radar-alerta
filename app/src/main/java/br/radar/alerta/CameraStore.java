@@ -443,6 +443,29 @@ final class CameraStore {
         return out;
     }
 
+    /** Anonymous OSM map note (POST /api/0.6/notes, no login needed). */
+    static boolean postNote(double lat, double lon, String text) {
+        try {
+            String q = String.format(java.util.Locale.US, "lat=%.6f&lon=%.6f&text=%s", lat, lon,
+                    java.net.URLEncoder.encode(text, "UTF-8"));
+            HttpURLConnection conn = (HttpURLConnection) new URL("https://api.openstreetmap.org/api/0.6/notes").openConnection();
+            try {
+                conn.setRequestMethod("POST");
+                conn.setConnectTimeout(10_000);
+                conn.setReadTimeout(20_000);
+                conn.setDoOutput(true);
+                conn.setRequestProperty("User-Agent", "radar-alerta/0.1 (personal use)");
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                conn.getOutputStream().write(q.getBytes("UTF-8"));
+                return conn.getResponseCode() == 200;
+            } finally {
+                conn.disconnect();
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     /** GET returning the body, or null for HTTP 404; any other failure throws. */
     private static String get(String url) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();

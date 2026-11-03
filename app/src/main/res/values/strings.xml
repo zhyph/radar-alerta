@@ -72,4 +72,11 @@
     <string name="sound_doorbell">Two-tone</string>
     <string name="sound_ping">Soft ping</string>
     <string name="sound_hint">Tap a sound to hear it and select it.</string>
+    <string name="report_button">Report a missing or wrong camera here</string>
+    <string name="report_confirm">Sends an anonymous note to OpenStreetMap at your current position, so a mapper can check it. Nothing else is sent.</string>
+    <string name="report_send">Send</string>
+    <string name="report_done">Report sent to OpenStreetMap. Thank you.</string>
+    <string name="report_fail">Could not send the report</string>
+    <string name="opt_auto_title">Start alerts when the app opens</string>
+    <string name="opt_auto_sub">Pair with a phone routine that opens Radar Alert when your car\'s Bluetooth connects.</string>
 </resources>

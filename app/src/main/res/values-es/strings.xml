@@ -72,4 +72,11 @@
     <string name="sound_doorbell">Dos tonos</string>
     <string name="sound_ping">Aviso suave</string>
     <string name="sound_hint">Toque un sonido para oírlo y seleccionarlo.</string>
+    <string name="report_button">Reportar cámara faltante o incorrecta aquí</string>
+    <string name="report_confirm">Envía una nota anónima a OpenStreetMap en tu posición actual, para que un mapeador la revise. No se envía nada más.</string>
+    <string name="report_send">Enviar</string>
+    <string name="report_done">Reporte enviado a OpenStreetMap. Gracias.</string>
+    <string name="report_fail">No se pudo enviar el reporte</string>
+    <string name="opt_auto_title">Iniciar alertas al abrir la app</string>
+    <string name="opt_auto_sub">Combínalo con una rutina del teléfono que abre Radar Alert al conectar el Bluetooth del coche.</string>
 </resources>

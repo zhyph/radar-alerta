@@ -193,6 +193,15 @@ public final class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         handler.post(refresh);
+        // Opening the app (e.g. from a car-Bluetooth routine) can start alerts, once per launch.
+        if (!autoTried) {
+            autoTried = true;
+            Settings st = new Settings(this);
+            if (st.autoStart() && st.legalAccepted() && RadarEngine.running() == null
+                    && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                startAlerts();
+            }
+        }
     }
 
     @Override
@@ -200,6 +209,8 @@ public final class MainActivity extends Activity {
         handler.removeCallbacks(refresh);
         super.onPause();
     }
+
+    private boolean autoTried;
 
     private void onToggle() {
         if (RadarEngine.running() != null) {

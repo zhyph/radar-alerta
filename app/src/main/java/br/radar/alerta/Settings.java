@@ -33,6 +33,10 @@ final class Settings {
 
     void setSoundId(String id) { prefs.edit().putString("sound", id).apply(); }
 
+    boolean autoStart() { return prefs.getBoolean("auto_start", false); }
+
+    void setAutoStart(boolean on) { prefs.edit().putBoolean("auto_start", on).apply(); }
+
     boolean legalAccepted() { return prefs.getBoolean("legal_ok", false); }
 
     void setLegalAccepted() { prefs.edit().putBoolean("legal_ok", true).apply(); }

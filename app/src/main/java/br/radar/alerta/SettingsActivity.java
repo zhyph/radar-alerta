@@ -250,6 +250,19 @@ public final class SettingsActivity extends Activity {
             sw.setChecked(on);
             settings.setOnlyWhenOver(on);
         }, null);
+
+        Switch auto = new Switch(this);
+        auto.setClickable(false);
+        auto.setChecked(settings.autoStart());
+        auto.setThumbTintList(new ColorStateList(new int[][] {{android.R.attr.state_checked}, {}},
+                new int[] {Ui.AMBER, Ui.TEXT_2}));
+        auto.setTrackTintList(new ColorStateList(new int[][] {{android.R.attr.state_checked}, {}},
+                new int[] {0x66FFB300, Ui.OUTLINE}));
+        row(getString(R.string.opt_auto_title), getString(R.string.opt_auto_sub), auto, v -> {
+            boolean on = !auto.isChecked();
+            auto.setChecked(on);
+            settings.setAutoStart(on);
+        }, null);
     }
 
     private void buildTypesSection() {
@@ -306,6 +319,13 @@ public final class SettingsActivity extends Activity {
         dp.topMargin = Ui.dp(this, 12);
         content.addView(download, dp);
 
+        Button report = Ui.button(this, getString(R.string.report_button), false);
+        report.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+                .setMessage(R.string.report_confirm)
+                .setPositiveButton(R.string.report_send, (d, w) -> reportCamera(report))
+                .setNegativeButton(android.R.string.cancel, null).show());
+        content.addView(report, new LinearLayout.LayoutParams(dp));
+
         cacheInfo = Ui.text(this, "", 14, Ui.TEXT_2, false);
         LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -341,6 +361,25 @@ public final class SettingsActivity extends Activity {
                 updateCacheInfo();
             });
         }, "radar-download").start();
+    }
+
+    /** Files an anonymous OpenStreetMap note at the current position so a mapper can fix the data. */
+    private void reportCamera(Button button) {
+        RadarEngine engine = RadarEngine.running();
+        android.location.Location fix = engine != null && engine.lastFix() != null ? engine.lastFix() : Ui.lastKnown(this);
+        if (fix == null) {
+            Toast.makeText(this, R.string.download_nolocation, Toast.LENGTH_LONG).show();
+            return;
+        }
+        button.setEnabled(false);
+        new Thread(() -> {
+            boolean ok = CameraStore.postNote(fix.getLatitude(), fix.getLongitude(),
+                    "Speed camera missing or wrong near here (reported from the Radar Alert app at the reporter's position).");
+            runOnUiThread(() -> {
+                Toast.makeText(this, ok ? R.string.report_done : R.string.report_fail, Toast.LENGTH_LONG).show();
+                button.setEnabled(true);
+            });
+        }, "radar-report").start();
     }
 
     private TextView batteryStatus;
