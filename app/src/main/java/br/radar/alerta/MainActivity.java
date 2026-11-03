@@ -153,6 +153,7 @@ public final class MainActivity extends Activity {
                     Ui.dp(this, 24) + bars.bottom);
             return WindowInsets.CONSUMED;
         });
+        mainRoot = root;
         setContentView(root);
 
         Settings settings = new Settings(this);
@@ -221,9 +222,52 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
-        handler.removeCallbacks(refresh);
+        // A PiP window is still on screen while paused, so keep its numbers live.
+        if (!isInPictureInPictureMode()) handler.removeCallbacks(refresh);
         super.onPause();
     }
+
+    @Override
+    protected void onStop() {
+        handler.removeCallbacks(refresh);   // also when the PiP window is closed
+        super.onStop();
+    }
+
+    /** Swapping to Maps shrinks the app into a small window with just speed and limit. */
+    @Override
+    protected void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        if (RadarEngine.running() == null) return;
+        try {
+            enterPictureInPictureMode(new android.app.PictureInPictureParams.Builder()
+                    .setAspectRatio(new android.util.Rational(2, 1)).build());
+        } catch (IllegalStateException ignored) {
+            // PiP switched off for this app in system settings: nothing to show.
+        }
+    }
+
+    @Override
+    public void onPictureInPictureModeChanged(boolean inPip, android.content.res.Configuration config) {
+        super.onPictureInPictureModeChanged(inPip, config);
+        if (inPip) {
+            if (pipRoot == null) {
+                pipPanel = new SpeedPanel(this);
+                pipRoot = new FrameLayout(this);
+                pipRoot.setBackgroundColor(Ui.BG);
+                pipRoot.addView(pipPanel, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+            }
+            setContentView(pipRoot);
+            handler.removeCallbacks(refresh);
+            handler.post(refresh);
+        } else {
+            setContentView(mainRoot);
+        }
+    }
+
+    private View mainRoot;
+    private FrameLayout pipRoot;
+    private SpeedPanel pipPanel;
 
     static final String EXTRA_START = "start";
     private boolean startRequested;
@@ -337,6 +381,11 @@ public final class MainActivity extends Activity {
                 wasCamera ? next.kind : CameraStore.Kind.SPEED, limit, (int) engine.nextDistM());
         speedPanel.setVisibility(View.VISIBLE);
         speedPanel.requestLayout();
+        if (pipPanel != null) {
+            pipPanel.set((int) Math.round(engine.lastSpeed() * 3.6), wasCamera,
+                    wasCamera ? next.kind : CameraStore.Kind.SPEED, limit, (int) engine.nextDistM());
+            pipPanel.requestLayout();
+        }
     }
 
     private boolean toggleIsPrimary = true;
