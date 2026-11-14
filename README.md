@@ -28,7 +28,7 @@ law. Camera data can be incomplete or out of date (small towns often have unmapp
 ```
 
 Needs the Android SDK (compileSdk 36, build-tools 36.0.0) and JDK 21; put `sdk.dir` in
-`local.properties`. Min SDK 29.
+`local.properties`. Min SDK 30.
 
 ## Testing alerts without driving
 
